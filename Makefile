@@ -1,9 +1,27 @@
 REPO_DIR = $(shell git rev-parse --show-toplevel)
+VENV_DIR = $(REPO_DIR)/.django-venv
 APPS = $(foreach app_dir,$(dir $(wildcard ${REPO_DIR}/*/apps.py)),$(patsubst ${REPO_DIR}/%/,%,$(app_dir)))
 APP_PATH_DIRS = $(dir $(abspath $(wildcard ${REPO_DIR}/*/apps.py)))
 PY_DIRS = mysite ${APP_DIRS}
 MANAGE_PY = ${REPO_DIR}/manage.py
 PYTHON = python
+
+get_cwd = $(realpath $(shell cd))/
+
+get_relative_path_to_root = $(let v,$(subst $(REPO_DIR),,$(realpath $(1))), \
+								$(if $(v),$(let x,$(addprefix $(if $(filter /%,$(v)),.,./),$(v)),$(x)),./))
+
+decode = $(words $1)
+increment = x $1
+
+build_relative_path = $(let from to,$(call get_relative_path_to_root, $(1)/../) $(addprefix ../,$(2)),$\
+							$(if $(subst ./,,$(from)),$\
+								$(call build_relative_path, $(from) $(to), $(iter)),$\
+								$(subst /./,/,$(to)))$\
+						)
+CD = $(call get_cwd)
+REQS = $(call get_relative_path_to_root,$(REPO_DIR)/requirements.txt)
+#$(info REL=$(call build_relative_path,$(CD),$(REQS)))
 
 DJANGO_ADMIN_TARGETS = AUTH CONTENTTYPE DEBUG_TOOLBAR DJANGO SESSIONS STATICFILES
 DJANGO_ADMIN_AUTH_TARGETS = changepassword createsuperuser
@@ -26,7 +44,7 @@ optimizemigration_REQ_ARGS = $(APPS)
 makemigrations_IGNORE_ARGS := 1
 
 # Setting default goal
-all: runserver
+all: | configure runserver
 
 # Append all django-admin command sections to the top-level variable
 define TARGET_TEMPLATE =
@@ -36,7 +54,7 @@ endef
 $(foreach target,$(DJANGO_ADMIN_TARGETS),$(eval $(call TARGET_TEMPLATE,$(target))))
 
 # Validate input
-TARGETS :::= all clean ${DJANGO_MANAGE_PY_TARGETS}
+TARGETS :::= all clean activate deactivate configure ${DJANGO_MANAGE_PY_TARGETS}
 ARGS :::= $(filter-out $(TARGETS), $(MAKECMDGOALS))
 .PHONY = $(TARGETS) $(ARGS)
 ifneq ($(MAKECMDGOALS),)
@@ -48,12 +66,22 @@ define RULE_TEMPLATE =
 ifeq ($$($(1)_IGNORE_ARGS),)
 	$(1)_REQ_ARGS += $(ARGS)
 endif
-$(1): $$($(1)_PREQUISITES) ${MANAGE_PY}
+$(1): | configure $$($(1)_PREQUISITES) ${MANAGE_PY}
 	@echo "Running target: $(1)"
 	${PYTHON} ${MANAGE_PY} $(1) $${${1}_REQ_ARGS}
 endef
 # Do it now.
 $(foreach target,$(DJANGO_MANAGE_PY_TARGETS),$(eval $(call RULE_TEMPLATE,$(target))))
+
+activate:
+	@python -m venv $(VENV_DIR)
+	@$(VENV_DIR)\Scripts\activate
+
+configure: activate
+	@python -m pip install -r $(call build_relative_path,$(CD),$(REQS))
+
+deactivate:
+	@deactivate
 
 clean:
 	@echo "Cleaning up..."
