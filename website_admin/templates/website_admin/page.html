@@ -1,0 +1,12 @@
+{% extends "website_admin/base.html" %}
+
+{% block content %}
+    {% if page %}
+       {% include "website_admin/page_info.html" %}
+    {% else %}
+        <div class="alert alert-danger" role="alert">
+            <strong>Page '{{ pk }}' not found!</strong>
+            The page you are looking for does not exist or is invalid (i.e., must be an integer).
+        </div>
+    {% endif %}
+{% endblock %}

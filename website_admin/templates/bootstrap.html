@@ -1,0 +1,31 @@
+{% extends 'django_bootstrap5/bootstrap5.html' %}
+
+{% load django_bootstrap5 %}
+
+{% block bootstrap5_title %}{% block title %}{% endblock %}{% endblock %}
+
+{% block bootstrap5_extra_head %}
+{% block extra_head %}{% endblock %}
+{% endblock %}
+
+{% block bootstrap5_before_content %}
+  {% include "navbar_base.html" %}
+  {% block before_content %}
+  {% endblock %}
+{% endblock %}
+
+{% block bootstrap5_content %}
+    {% autoescape off %}{% bootstrap_messages %}{% endautoescape %}
+
+    {% block content %}Sorry, page '{{ template_path }}' not found.{% endblock %}
+{% endblock %}
+
+{% block bootstrap5_after_content %}
+  {% block after_content %}
+  {% endblock %}
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+  {% block extra_script %}
+  {% endblock %}
+{% endblock %}

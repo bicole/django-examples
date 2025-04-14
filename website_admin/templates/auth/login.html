@@ -1,0 +1,186 @@
+{% extends "auth/base.html" %}
+
+{% load django_bootstrap5 %}
+
+{% block extra_head %}
+<style>
+    .slidecontainer {
+        width: 100%; /* Width of the outside container */
+      }
+
+      /* The slider itself */
+      .slider {
+        -webkit-appearance: none;  /* Override default CSS styles */
+        appearance: none;
+        width: 100%; /* Full-width */
+        height: 25px; /* Specified height */
+        background: #d3d3d3; /* Grey background */
+        outline: none; /* Remove outline */
+        opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+        -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+        transition: opacity .2s;
+      }
+
+      /* Mouse-over effects */
+      .slider:hover {
+        opacity: 1; /* Fully shown on mouse-over */
+      }
+
+      /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+      .slider::-webkit-slider-thumb {
+        -webkit-appearance: none; /* Override default look */
+        appearance: none;
+        width: 25px; /* Set a specific slider handle width */
+        height: 25px; /* Slider handle height */
+        background: #04AA6D; /* Green background */
+        cursor: pointer; /* Cursor on hover */
+      }
+
+      .slider::-moz-range-thumb {
+        width: 25px; /* Set a specific slider handle width */
+        height: 25px; /* Slider handle height */
+        background: #04AA6D; /* Green background */
+        cursor: pointer; /* Cursor on hover */
+      }
+</style>
+{% endblock %}
+
+{% block content %}
+
+        <!-- Modal -->
+        <div class="modal fade" id="humanQuestionModal" tabindex="-1" aria-labelledby="humanQuestionModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="humanQuestionModalLabel">Are you a <strong>human</strong>?</h1>
+                </div>
+                <div class="modal-body">
+                    Seriously, are you?
+                    {% if form.errors %}
+                        Your username and password didn't match. Please try again.
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button id="hqModalYes" type="button" class="btn btn-primary">Yes</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="window.location.reload()">No</button>
+                </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Auth Form -->
+    {% if form.errors %}
+        {% include "forms/display_form_errors.html" %}
+    {% endif %}
+    {% if next and not form.errors %}
+        {% if user.is_authenticated %}
+            <p>Your account doesn't have access to this page. To proceed, please login with an account that has access.</p>
+        {% else %}
+            <p>Please login to see this page.</p>
+        {% endif %}
+    {% endif %}
+
+    <div id="auth-form-container" class="col" disabled hidden>
+        <form id="auth-form" class="form" method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="h3">Enter your login info below:</div>
+            {% bootstrap_form form alert_error_type='all' required_css_class='required'%}
+
+            <div class="slidecontainer">
+                <label for="favoriteNumRange">Please select your favorite number between 1 and 100, inclusive.</label>
+                <input type="range" min="0" max="100" value="0" class="slider" id="favoriteNumRange">
+                <div>My Favorite Number is: <p id="sliderValue">0</p></div>
+            </div>
+
+            <div id="auth-form-btns" hidden disabled>
+                {% bootstrap_button button_type="submit" content="Login" %}
+                {% bootstrap_button button_type="reset" content="Reset" %}
+                <input type="hidden" name="next" value="{% spaceless %}{% if next %} {{ next }} {% else %} {% url 'admin:index' %} {% endif %}{% endspaceless %}"/>
+            </div>
+        </form>
+
+        {# Assumes you set up the password_reset view in your URLconf #}
+        <div class="w3-row"><a href="{% url 'password_reset' %}">Lost password?</a></div>
+    </div>
+
+{% endblock %}
+
+{% block after_content %}
+<script>
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+    const sleep = async (ms) => {
+        await delay(ms);
+    }
+
+    var authFormContainer = document.getElementById("auth-form-container");
+    var authForm = document.getElementById("auth-form");
+    var slider = document.getElementById("favoriteNumRange");
+    var output = document.getElementById("sliderValue");
+    authFormContainer.setAttribute('disabled', 'disabled'); // Disable the form initially
+    authFormContainer.setAttribute('hidden', 'hidden'); // Hide the form initially
+    output.innerHTML = slider.value; // Display the default slider value
+
+    // Update the current slider value (each time you drag the slider handle)
+    slider.oninput = function() {
+        output.innerHTML = this.value;
+    }
+
+    checkAndEnableLoginButton = function() {
+        var authFormBtns = document.getElementById("auth-form-btns");
+        var authFormIsValid = authForm.checkValidity(); // Check if the form is valid
+        if (slider.value >= 1 && slider.value <= 100 && authFormIsValid) {
+            authFormBtns.removeAttribute('disabled'); // Enable the form when the slider value is valid
+            authFormBtns.removeAttribute('hidden'); // Show the form when the slider value is valid
+        } else {
+            authFormBtns.setAttribute('disabled', 'disabled'); // Disable the form when the slider value is invalid
+            authFormBtns.setAttribute('hidden', 'hidden'); // Hide the form when the slider value is invalid
+            if (!authFormIsValid) {
+                var doNotReport = false;
+                document.querySelectorAll('form#auth-form input.form-control').forEach(function(input) {
+                    if (input.value.length === 0) {
+                        doNotReport = true; // Don't report if the input is empty
+                    }
+                })
+                if (!doNotReport) {
+                    authForm.reportValidity(); // Show the validation message if the form is invalid
+                }
+            }
+        }
+    }
+
+    slider.onchange = checkAndEnableLoginButton;
+    document.querySelectorAll('form#auth-form input.form-control').forEach(function(input) {
+        input.addEventListener('input', checkAndEnableLoginButton);
+    })
+
+    authForm.addEventListener('reset', function() {
+        var authFormBtns = document.getElementById("auth-form-btns");
+        authFormBtns.setAttribute('disabled', 'disabled'); // Disable the form when the slider value is invalid
+        authFormBtns.setAttribute('hidden', 'hidden'); // Hide the form when the slider value is invalid
+        slider.value = 0; // Reset the slider value to 0
+    })
+
+    // Show the modal if the user is not authenticated and the form is not submitted
+    var humanQuestionModal = new bootstrap.Modal(document.getElementById('humanQuestionModal'), {
+        keyboard: false
+    });
+
+    if (!{{ user.is_authenticated|yesno:"false,true" }} && !{{ form.is_bound|yesno:"false,true" }}) {
+        humanQuestionModal.show();
+    }
+
+    // Handle the button clicks in the modal
+    document.getElementById('hqModalYes').addEventListener('click', function() {
+        authFormContainer.removeAttribute('disabled');
+        authFormContainer.removeAttribute('hidden');
+        humanQuestionModal.hide();
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if form.errors %}
+            sleep(3);
+        {% endif %}
+        humanQuestionModal.show();
+    });
+</script>
+{% endblock %}

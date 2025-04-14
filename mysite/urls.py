@@ -16,8 +16,16 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
+from debug_toolbar.toolbar import debug_toolbar_urls
+from django.contrib.auth import views as auth_views
+
+auth_views.LoginView.template_name = "auth/login.html"
+auth_views.LogoutView.template_name = "auth/logout.html"
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-]
+    path("docs/", include("django.contrib.admindocs.urls"), name="docs"),
+    path("", include("website_admin.urls")),
+    path("auth/", include("django.contrib.auth.urls")),
+    path("admin/", admin.site.urls, name="admin"),
+] + debug_toolbar_urls()

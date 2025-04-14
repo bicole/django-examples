@@ -1,0 +1,11 @@
+{% extends "website_admin/base.html" %}
+
+{% block content %}
+    <h1>Pages</h1>
+    {% if pages %}<p>Click the header to expand</p>{% endif %}
+    {% for page in pages %}
+        {% include "website_admin/page_info.html" %}
+    {% empty %}
+        <p>No pages found.</p>
+    {% endfor %}
+{% endblock %}

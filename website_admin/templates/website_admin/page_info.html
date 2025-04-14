@@ -1,0 +1,51 @@
+{% comment %}
+Primary template for displaying page information. It includes the header, body, and footer of the page.
+{% endcomment %}
+{% if page %}
+    <div class="row">
+        {% if request.path == "/" %}
+            <div class="col-auto">
+                <a href="{% url 'pages:detail' page.id %}">Page {{ page.id }}</a>
+            </div>
+        {% endif %}
+        <div class="col accordion">
+            <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#page_{{ page.id }}_content" aria-expanded="true" aria-controls="page_{{ page.id }}_content">
+                    <div class="justify-content-left">
+                        {% if not page.supports_html %}
+                            <h2>{{ page.header|default:"Empty header"|linebreaks }}</h2>
+                        {% else %}
+                            {% comment %}
+                                Since autoescape is enabled by default, I disabled it to allow for
+                                the page fields to include html content directly.
+                            {% endcomment %}
+                            {% autoescape off %}
+                                {{ page.header|default:"Empty header" }}
+                            {% endautoescape %}
+                        {% endif %}
+                    </div>
+                </button>
+            </h2>
+            <div id="page_{{ page.id }}_content"
+                {% if request.path == "/" %}
+                    class="accordion-collapse collapse"
+                {% else %}
+                    class="accordion-collapse collapse show"
+                {% endif %}
+                aria-labelledby="page_{{ page.id }}_content">
+                <div class="accordion-body">
+                    {% if not page.supports_html %}
+                        <div>{{ page.body|default:"Empty body"|linebreaks }}</div>
+                        <footer>{{ page.footer|default:"Empty footer"|linebreaks }}</footer>
+                    {% else %}
+                        {% autoescape off %}
+                            {{ page.body|default:"Empty body" }}
+                            {{ page.footer|default:"Empty footer" }}
+                        {% endautoescape %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
